@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Прототип «Пополнение счета» v1.0</title>
+<style>
+  :root{
+    --green:#21a038; --green-d:#18802c; --green-l:#e8f5ea;
+    --bg:#eef1f4; --card:#ffffff; --ink:#16222e; --mut:#6b7583;
+    --line:#e2e7ec; --red:#d94141; --red-l:#fdecec;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#cfd6dd;
+       display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+  .phone{width:360px;height:740px;background:var(--bg);border-radius:44px;overflow:hidden;
+         box-shadow:0 24px 60px rgba(20,40,60,.35);position:relative;border:10px solid #1a222b}
+  .statusbar{display:flex;justify-content:space-between;padding:12px 20px 4px;font-size:13px;font-weight:600;color:var(--ink)}
+  .screen{position:absolute;inset:0;padding:6px 16px 16px;display:none;flex-direction:column}
+  .screen.active{display:flex;animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .hdr{display:flex;align-items:center;gap:10px;padding:6px 0 12px}
+  .hdr .back{width:36px;height:36px;border:none;border-radius:50%;background:#fff;font-size:18px;cursor:pointer;color:var(--ink)}
+  .hdr h1{font-size:18px;margin:0;font-weight:700}
+  /* Balance card */
+  .bal{background:linear-gradient(135deg,var(--green),#178f63);border-radius:20px;color:#fff;
+       padding:20px;margin-bottom:14px;box-shadow:0 10px 24px rgba(33,160,56,.25)}
+  .bal .lbl{font-size:13px;opacity:.85}
+  .bal .amt{font-size:34px;font-weight:800;margin:4px 0 10px;letter-spacing:-.5px}
+  .bal .actions{display:flex;gap:10px}
+  .btn{flex:1;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:700;cursor:pointer}
+  .btn.primary{background:#fff;color:var(--green-d)}
+  .btn.ghost{background:rgba(255,255,255,.16);color:#fff}
+  .btn.green{background:var(--green);color:#fff;width:100%}
+  .btn.green:disabled{opacity:.4;cursor:default}
+  .btn.sec{background:var(--green-l);color:var(--green-d)}
+  /* Banner */
+  .banner{background:#fff;border-radius:16px;padding:12px 14px;display:flex;gap:12px;align-items:center;margin-bottom:14px;
+          box-shadow:0 2px 8px rgba(20,40,60,.06);cursor:pointer}
+  .banner .ic{width:38px;height:38px;border-radius:12px;background:var(--green-l);display:flex;align-items:center;justify-content:center;font-size:18px}
+  .banner b{font-size:13.5px}
+  .banner p{margin:2px 0 0;font-size:12px;color:var(--mut)}
+  /* Sections */
+  .sec{font-size:13px;font-weight:700;margin:14px 0 8px;color:var(--ink)}
+  .ops{background:#fff;border-radius:16px;box-shadow:0 2px 8px rgba(20,40,60,.06);margin-bottom:14px}
+  .opus{display:flex;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .opus:last-child{border-bottom:none}
+  .opus .ic{width:34px;height:34px;border-radius:10px;background:#f0f3f6;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .opus .nm{font-size:13.5px;font-weight:600}
+  .opus .dt{font-size:11.5px;color:var(--mut)}
+  .opus .su{font-size:13.5px;font-weight:700}
+  .opus .su.minus{color:var(--red)}
+  .opus .su.plus{color:var(--green-d)}
+  /* amount */
+  .card{background:#fff;border-radius:18px;padding:16px;box-shadow:0 2px 8px rgba(20,40,60,.06)}
+  .label{font-size:12.5px;color:var(--mut);margin-bottom:6px}
+  .amount{display:flex;align-items:center;gap:6px;border:2px solid var(--line);border-radius:14px;padding:4px 14px;margin-bottom:10px;background:#f8fafc}
+  .amount.rub{font-size:18px;font-weight:800}
+  .amount input{width:100%;border:none;outline:none;font-size:20px;font-weight:700;background:transparent;color:var(--ink);padding:10px 0}
+  .chips{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .chip{border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer}
+  .chip.sel{border-color:var(--green);background:var(--green-l);color:var(--green-d)}
+  .chip.fill{flex:1;min-width:140px;border-color:var(--green);color:var(--green-d);background:var(--green-l)}
+  /* methods */
+  .methods{display:flex;flex-direction:column;gap:8px}
+  .method{border:1.5px solid var(--line);background:#fff;border-radius:14px;padding:12px 14px;cursor:pointer;display:flex;gap:12px;align-items:center}
+  .method .ic{width:38px;height:38px;border-radius:12px;font-size:18px;display:flex;align-items:center;justify-content:center}
+  .method:nth-of-type(1) .ic{background:#e7f4ea}
+  .method:nth-of-type(2) .ic{background:#e9f0ff}
+  .method:nth-of-type(3) .ic{background:#fff3dd}
+  .method:nth-of-type(4) .ic{background:#efe9ff}
+  .method:nth-of-type(5) .ic{background:#e4f6fb}
+  .method .nm{font-size:14px;font-weight:600}
+  .method .sub{font-size:12px;color:var(--mut);margin-top:2px}
+  .method .tags{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+  .tag{font-size:10.5px;background:#f0f3f6;border-radius:8px;padding:3px 8px;color:var(--mut);font-weight:600}
+  .tag.ok{background:var(--green-l);color:var(--green-d)}
+  .method.sel{border-color:var(--green);background:#fafffb}
+  .method .radio{margin-left:auto;width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex:none}
+  .method.sel .radio{border-color:var(--green);background:radial-gradient(circle,var(--green) 45%,#fff 48%)}
+  /* card form */
+  .cardform{display:none;margin-top:12px;padding:14px;background:#f8fafc;border:1.5px dashed var(--line);border-radius:14px}
+  .cardform.show{display:block}
+  .guard{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--green-d);font-weight:600;margin-bottom:10px}
+  .guard .ic{font-size:15px}
+  .field{margin-bottom:10px}
+  .field input{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px;font-size:15px;outline:none}
+  .field input:focus{border-color:var(--green)}
+  .row2{display:flex;gap:10px}
+  .row2 .field{flex:1}
+  /* algo */
+  .algo{font-size:11.5px;color:var(--mut);text-align:center;margin-top:14px}
+  .feet{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:8px}
+  /* confirm */
+  .sum{background:#fff;border-radius:18px;padding:16px;box-shadow:0 2px 8px rgba(20,40,60,.06);margin-bottom:12px}
+  .row{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;border-bottom:1px solid var(--line)}
+  .row:last-child{border-bottom:none}
+  .row .k{color:var(--mut)}
+  .row .v{font-weight:700}
+  .row.total{font-size:15.5px}
+  .row.total .v{color:var(--green-d);font-size:19px}
+  .safe{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mut);justify-content:center;margin-top:6px}
+  /* states */
+  .state{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;padding:0 24px}
+  .state.active{display:flex;animation:fade .3s ease}
+  .state .ic{width:86px;height:86px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:42px}
+  .state.ok .ic{background:var(--green-l)}
+  .state.err .ic{background:var(--red-l)}
+  .state h2{margin:6px 0 2px;font-size:19px}
+  .state p{color:var(--mut);margin:0 0 6px;font-size:13.5px;line-height:1.5}
+  .state .newbal{font-size:30px;font-weight:800;color:var(--green-d)}
+  .spinner{width:40px;height:40px;border:4px solid var(--green-l);border-top-color:var(--green);border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .foot-ok{width:100%;display:flex;flex-direction:column;gap:10px;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="statusbar"><span>9:41</span><span>📶 ◉ 🔋</span></div>
+
+  <!-- ============ ЭКРАН 1: Главный ============ -->
+  <div class="screen active" id="scr-main">
+    <div class="hdr"><h1>Мои деньги</h1></div>
+    <div class="bal">
+      <div class="lbl">Текущий баланс</div>
+      <div class="amt" id="bal-amt">1 240,50 ₽</div>
+      <div class="actions">
+        <button class="btn primary" onclick="go('scr-topup')">Пополнить</button>
+        <button class="btn ghost" onclick="alert('Прототип: раздел «Переводы»')">Перевести</button>
+      </div>
+    </div>
+    <div class="banner" onclick="go('scr-topup')">
+      <div class="ic">💸</div>
+      <div><b>Вам перевели 500 ₽ по СБП</b><p>Средства уже на счете. Пополнить баланс?</p></div>
+    </div>
+    <div class="sec">Последние операции</div>
+    <div class="ops">
+      <div class="opus"><div class="ic">🏪</div><div><div class="nm">Магнит</div><div class="dt">Сегодня, 08:12</div></div><div class="su minus">− 540,00 ₽</div></div>
+      <div class="opus"><div class="ic">💸</div><div><div class="nm">Перевод по СБП</div><div class="dt">Вчера, 19:40</div></div><div class="su plus">+ 500,00 ₽</div></div>
+      <div class="opus"><div class="ic">☕</div><div><div class="nm">Кофейня</div><div class="dt">Вчера, 09:05</div></div><div class="su minus">− 189,00 ₽</div></div>
+    </div>
+  </div>
+
+  <!-- ============ ЭКРАН 2: Способ + сумма ============ -->
+  <div class="screen" id="scr-topup">
+    <div class="hdr">
+      <button class="back" onclick="go('scr-main')">&larr;</button>
+      <h1>Пополнение</h1>
+    </div>
+    <div class="card">
+      <div class="label">Сумма пополнения</div>
+      <div class="amount"><span class="rub">₽</span><input id="inp-amt" type="text" inputmode="decimal" placeholder="0" oninput="fmtAmt(this)"></div>
+      <div class="chips">
+        <button class="chip" onclick="setAmt(this,'1 000')">1 000 ₽</button>
+        <button class="chip" onclick="setAmt(this,'3 000')">3 000 ₽</button>
+        <button class="chip" onclick="setAmt(this,'5 000')">5 000 ₽</button>
+        <button class="chip fill" onclick="setAmt(this,'1 760,50')">Пополнить на недостающее 1 760,50 ₽</button>
+      </div>
+      <div class="label">Способ</div>
+      <div class="methods">
+        <div class="method sel" data-next="card" onclick="pick(this)">
+          <div class="ic">💳</div>
+          <div><div class="nm">С карты другого банка</div>
+            <div class="tags"><span class="tag ok">Комиссия 0 ₽</span><span class="tag ok">~1 мин</span></div></div>
+          <div class="radio"></div>
+        </div>
+        <div class="method" data-next="sbp" onclick="pick(this)">
+          <div class="ic">⚡</div>
+          <div><div class="nm">Через СБП</div>
+            <div class="tags"><span class="tag ok">Комиссия 0 ₽</span><span class="tag ok">Мгновенно</span></div></div>
+          <div class="radio"></div>
+        </div>
+        <div class="method" data-next="sbp" onclick="pick(this)">
+          <div class="ic">🏦</div>
+          <div><div class="nm">По номеру карты или счета</div>
+            <div class="tags"><span class="tag">До 1,5%</span><span class="tag">От 10 мин</span></div></div>
+          <div class="radio"></div>
+        </div>
+        <div class="method" data-next="sbp" onclick="pick(this)">
+          <div class="ic">💰</div>
+          <div><div class="nm">Со счета в другом банке</div>
+            <div class="tags"><span class="tag ok">Комиссия 0 ₽</span><span class="tag">~5 мин</span></div></div>
+          <div class="radio"></div>
+        </div>
+        <div class="method" data-next="sbp" onclick="pick(this)">
+          <div class="ic">🏧</div>
+          <div><div class="nm">Наличные: терминалы и банкоматы</div>
+            <div class="tags"><span class="tag">0 ₽</span><span class="tag">Найдите партнёра на карте</span></div></div>
+          <div class="radio"></div>
+        </div>
+      </div>
+
+      <div class="cardform show" id="card-form">
+        <div class="guard"><span class="ic">🔒</span> Ваши данные защищены и не сохраняются</div>
+        <div class="field"><input id="inp-num" type="text" inputmode="numeric" placeholder="Номер карты" oninput="fmtCard(this)"></div>
+        <div class="row2">
+          <div class="field"><input id="inp-exp" type="text" inputmode="numeric" placeholder="ММ/ГГ" maxlength="5" oninput="fmtExp(this)"></div>
+          <div class="field"><input type="password" inputmode="numeric" placeholder="CVV" maxlength="3"></div>
+        </div>
+        <button class="btn sec" onclick="autofill(event)">Использовать тестовую карту для теста</button>
+      </div>
+    </div>
+    <div class="algo">При пополнении <b>1 000 ₽</b> с карты другого банка спишется ровно 1 000 ₽</div>
+    <div class="feet">
+      <button class="btn green" onclick="continueTopup()">Продолжить</button>
+    </div>
+  </div>
+
+  <!-- ============ ЭКРАН 3: Подтверждение ============ -->
+  <div class="screen" id="scr-confirm">
+    <div class="hdr">
+      <button class="back" onclick="go('scr-topup')">&larr;</button>
+      <h1>Подтверждение</h1>
+    </div>
+    <div class="sum" id="sum-box"></div>
+    <div class="safe">🔒 Безопасное подтверждение</div>
+    <div class="feet">
+      <button class="btn green" onclick="confirmTopup()">Подтвердить</button>
+    </div>
+  </div>
+
+  <!-- ============ СОСТОЯНИЯ (на экране результата) ============ -->
+  <div class="state ok" id="st-success">
+    <div class="ic">✅</div>
+    <h2>Средства зачислены</h2>
+    <div class="newbal" id="new-bal">4 240,50 ₽</div>
+    <p>Баланс обновлён. Можете оплатить покупку или вернуться на главный.</p>
+    <div class="foot-ok">
+      <button class="btn green" onclick="finish(true)">Оплатить покупку</button>
+      <button class="btn sec" onclick="finish(false)">Готово</button>
+    </div>
+  </div>
+  <div class="state" id="st-pending">
+    <div class="spinner"></div>
+    <h2>Средства в пути</h2>
+    <p>Обычно занимает ~1 минуту.<br>Пришлём уведомление, как только деньги поступят.</p>
+  </div>
+  <div class="state err" id="st-error">
+    <div class="ic">⚠️</div>
+    <h2>Не получилось пополнить</h2>
+    <p>Проверьте сумму и реквизиты карты и попробуйте ещё раз.</p>
+    <button class="btn sec" onclick="go('scr-topup')">Вернуться к вводу</button>
+  </div>
+</div>
+
+<script>
+  function go(id){
+    document.querySelectorAll('.screen,.state').forEach(s=>s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+  function pick(el){
+    document.querySelectorAll('.method').forEach(m=>m.classList.remove('sel'));
+    el.classList.add('sel');
+    const showCard = el.dataset.next === 'card';
+    document.getElementById('card-form').classList.toggle('show', showCard);
+  }
+  function setAmt(btn, v){
+    document.querySelectorAll('.chip').forEach(c=>c.classList.remove('sel'));
+    btn.classList.add('sel');
+    const inp = document.getElementById('inp-amt');
+    inp.value = v.replace(/\s/g,'');
+    inp.dispatchEvent(new Event('input'));
+  }
+  function fmtAmt(el){
+    el.value = el.value.replace(/[^\d,\.]/g,'');
+  }
+  function fmtCard(el){
+    el.value = el.value.replace(/[^\d]/g,'').replace(/(\d{4})(?=\d)/g,'$1 ').slice(0,19);
+    if(el.value.replace(/\s/g,'').length===16) document.getElementById('inp-exp').focus();
+  }
+  function fmtExp(el){
+    el.value = el.value.replace(/[^\d]/g,'').replace(/(\d{2})(?=\d)/,'$1/').slice(0,5);
+  }
+  function autofill(e){
+    e.preventDefault(); e.stopPropagation();
+    const num=document.getElementById('inp-num'), exp=document.getElementById('inp-exp');
+    num.value='4276 1234 5678 9012';
+    exp.value='12/28';
+    document.querySelector('#card-form input[type=password]').value='123';
+  }
+  function continueTopup(){
+    const amtRaw = document.getElementById('inp-amt').value.replace(/\s/g,'');
+    if(!amtRaw || parseFloat(amtRaw.replace(',','.')) <= 0){ alert('Укажите сумму пополнения'); return; }
+    const sel=document.querySelector('.method.sel');
+    const name=sel.querySelector('.nm').textContent;
+    const amt=amtRaw.replace(',','.');
+    renderSum(name, amt);
+    go('scr-confirm');
+  }
+  function renderSum(name, amt){
+    const n=parseFloat(amt).toLocaleString('ru-RU');
+    let mt='~1 мин', fee='0 ₽';
+    const t=document.getElementById('sum-box');
+    t.innerHTML =
+      '<div class="row"><span class="k">Способ</span><span class="v">'+name+'</span></div>'+
+      '<div class="row total"><span class="k">Спишется</span><span class="v">'+n+' ₽</span></div>'+
+      '<div class="row"><span class="k">Комиссия</span><span class="v">'+fee+'</span></div>'+
+      '<div class="row"><span class="k">На счет поступит</span><span class="v">'+n+' ₽</span></div>'+
+      '<div class="row"><span class="k">Срок зачисления</span><span class="v">'+mt+'</span></div>';
+  }
+  let balance=1240.5;
+  function fmt(n){
+    return n.toLocaleString('ru-RU',{minimumFractionDigits:2, maximumFractionDigits:2})+' ₽';
+  }
+  function currentAmt(){
+    return parseFloat(document.getElementById('inp-amt').value.replace(/\s/g,'').replace(',','.')||0);
+  }
+  function finish(pay){
+    const ops=document.querySelector('.ops');
+    const row=document.createElement('div'); row.className='opus';
+    row.innerHTML='<div class="ic">💳</div><div><div class="nm">Пополнение счета</div><div class="dt">Сегодня, только что</div></div><div class="su plus">+ '+fmt(currentAmt())+'</div>';
+    ops.insertBefore(row, ops.firstChild);
+    if(pay){
+      balance-=540;
+      const p=document.createElement('div'); p.className='opus';
+      p.innerHTML='<div class="ic">🏪</div><div><div class="nm">Оплата покупки</div><div class="dt">Сегодня, сейчас</div></div><div class="su minus">− 540,00 ₽</div>';
+      ops.insertBefore(p, ops.firstChild);
+    }
+    document.getElementById('bal-amt').textContent=fmt(balance);
+    go('scr-main');
+  }
+  function confirmTopup(){
+    go('st-pending');
+    balance+=currentAmt();
+    setTimeout(()=>{
+      document.getElementById('new-bal').textContent=fmt(balance);
+      go('st-success');
+    }, 1500);
+  }
+</script>
+</body>
+</html>
