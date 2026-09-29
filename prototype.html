@@ -14,6 +14,10 @@
   html,body{margin:0;height:100%}
   body{font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#cfd6dd;
        display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+  body{flex-direction:column;gap:16px}
+  .nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  .nav button{font:600 12px/1 'Segoe UI',Roboto,Arial,sans-serif;color:#fff;background:#0e7a40;border:none;border-radius:20px;padding:9px 14px;cursor:pointer;box-shadow:0 3px 10px rgba(20,40,60,.25)}
+  .nav button:hover{background:#0f9a50}
   .phone{width:360px;height:740px;background:var(--bg);border-radius:44px;overflow:hidden;
          box-shadow:0 24px 60px rgba(20,40,60,.35);position:relative;border:10px solid #1a222b}
   .statusbar{display:flex;justify-content:space-between;padding:12px 20px 4px;font-size:13px;font-weight:600;color:var(--ink)}
@@ -116,6 +120,12 @@
 </style>
 </head>
 <body>
+  <div class="nav">
+    <button onclick="jump('scr-main')">1 · Вход</button>
+    <button onclick="jump('scr-topup')">2 · Способ</button>
+    <button onclick="jump('scr-confirm')">3 · Подтверждение</button>
+    <button onclick="jump('st-success')">4 · Успех</button>
+  </div>
 <div class="phone">
   <div class="statusbar"><span>9:41</span><span>📶 ◉ 🔋</span></div>
 
@@ -248,6 +258,17 @@
   function go(id){
     document.querySelectorAll('.screen,.state').forEach(s=>s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+  }
+  function jump(id){
+    if(id==='scr-confirm' && !document.getElementById('sum-box').innerHTML.trim()){
+      var a=document.getElementById('inp-amt').value.trim()||'3000';
+      renderSum('С карты другого банка', a.replace(/\s/g,'').replace(',','.'));
+    }
+    if(id==='st-success'){
+      var b=balance+parseFloat((document.getElementById('inp-amt').value.replace(/\s/g,'').replace(',','.')||0));
+      document.getElementById('new-bal').textContent=fmt(b);
+    }
+    go(id);
   }
   function pick(el){
     document.querySelectorAll('.method').forEach(m=>m.classList.remove('sel'));
